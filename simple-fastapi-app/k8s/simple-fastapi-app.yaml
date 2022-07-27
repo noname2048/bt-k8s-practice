@@ -3,13 +3,15 @@ kind: Deployment
 metadata:
   name: simple-fastapi-app
 spec:
-  replicas: 2
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: simple-fastapi-app
-  # strategy:
-  #   type: RollingUpdate
-
   template:
     metadata:
       labels:
@@ -19,13 +21,14 @@ spec:
     spec:
       containers:
       - name: simple-fastapi-app
-        image: asia.gcr.io/easydeep-dev/simple-fastapi-app:1.0
+        image: asia.gcr.io/easydeep-dev/simple-fastapi-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
         resources:
           limits:
             memory: "1000Mi"
             cpu: "100m"
-        ports:
-        - containerPort: 8000
 ---
 apiVersion: v1
 kind: Service
@@ -35,7 +38,7 @@ spec:
   selector:
     app: simple-fastapi-app
   ports:
-  - port: 8000
+  - port: 3200
     targetPort: 8000
 ---
 apiVersion: v1
@@ -47,7 +50,7 @@ spec:
     app: simple-fastapi-app
   type: LoadBalancer
   ports:
-  - port: 80
+  - port: 3100
     targetPort: 8000
     nodePort: 30002
 ---
@@ -58,7 +61,10 @@ metadata:
   labels:
     name: myingress
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: "easydeep-ip"
+    kubernetes.io/ingress.global-static-ip-name: easydeep-ip
+    networking.gke.io/managed-certificates: managed-cert
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/v1beta1.FrontendConfig: my-frontend-config
 spec:
   rules:
   - http:
@@ -69,4 +75,21 @@ spec:
           service:
             name: simple-fastapi-app-service-ip
             port:
-              number: 8000
+              number: 3200
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: managed-cert
+spec:
+  domains:
+    - dev-api.easydeep.ai
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: my-frontend-config
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: PERMANENT_REDIRECT
