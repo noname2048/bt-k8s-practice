@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t simple-fastapi-app:1.0 .
+docker build -t simple-fastapi-app .
