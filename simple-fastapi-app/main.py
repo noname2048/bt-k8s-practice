@@ -21,7 +21,7 @@ async def index():
     """
     now: datetime = datetime.now(tz=KST)
     str_time: str = now.strftime(PRETTY_TIME_FORMAT)
-    return {"message": str_time}
+    return {"message": str_time, "company": "알고리마"}
 
 
 if __name__ == "__main__":
